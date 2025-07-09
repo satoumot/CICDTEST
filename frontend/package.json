@@ -1,41 +1,43 @@
 {
-    "name": "frontend",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start",
-        "lint": "next lint",
-        "debug": "NODE_OPTIONS='--inspect=0.0.0.0:9230' next dev",
-        "prettier": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css}'",
-        "test": "jest --passWithNoTests"
-    },
-    "dependencies": {
-        "next": "15.3.4",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0"
-    },
-    "devDependencies": {
-        "@eslint/eslintrc": "^3",
-        "@eslint/js": "^9.29.0",
-        "@tailwindcss/postcss": "^4",
-        "@testing-library/jest-dom": "^6.6.3",
-        "@testing-library/react": "^16.3.0",
-        "@testing-library/user-event": "^14.6.1",
-        "@types/jest": "^30.0.0",
-        "@types/node": "^20",
-        "@types/react": "^19",
-        "@types/react-dom": "^19",
-        "eslint": "^9",
-        "eslint-config-next": "15.3.4",
-        "eslint-config-prettier": "^10.1.5",
-        "jest": "^30.0.4",
-        "jest-environment-jsdom": "^30.0.4",
-        "prettier": "^3.6.2",
-        "tailwindcss": "^4",
-        "ts-jest": "^29.4.0",
-        "typescript": "^5",
-        "typescript-eslint": "^8.35.0"
-    }
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "debug": "NODE_OPTIONS='--inspect=0.0.0.0:9230' next dev",
+    "prettier": "prettier --write 'src/**/*.{js,jsx,ts,tsx,css}'",
+    "test": "jest"
+  },
+  "dependencies": {
+    "next": "15.3.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@eslint/js": "^9.29.0",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.4",
+    "eslint-config-prettier": "^10.1.5",
+    "jest": "^30.0.4",
+    "jest-environment-jsdom": "^30.0.4",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5",
+    "typescript-eslint": "^8.35.0"
+  }
 }
