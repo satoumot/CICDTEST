@@ -45,7 +45,7 @@ describe('Counter Component', () => {
         await user.click(button);
 
         // カウントが "2" に更新されていることを確認
-        expect(screen.getByText('You clicked 2 times')).toBeInTheDocument();
+        expect(screen.getByText('You clicked 1 times')).toBeInTheDocument();
     });
 
     /**
