@@ -1,0 +1,80 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Graphql Docker Attach",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678 // デバッガがリッスンするポート
+            },
+            "pathMappings": [
+                {
+                    // ローカルの作業ディレクトリをコンテナ内の/appにマッピング
+                    "localRoot": "${workspaceFolder}/backend/services/graphql-service/app",
+                    "remoteRoot": "/app"
+                },
+                {
+                    // ローカルの共有ライブラリをコンテナ内の/sharedにマッピング
+                    "localRoot": "${workspaceFolder}/backend/shared",
+                    "remoteRoot": "/shared"
+                }
+            ]
+        },
+        {
+            "name": "Python: Cart Docker Attach",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5679
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/backend/services/grpc-cart-service/app",
+                    "remoteRoot": "/app"
+                },
+                {
+                    "localRoot": "${workspaceFolder}/backend/shared",
+                    "remoteRoot": "/shared"
+                }
+            ]
+        },
+        {
+            "name": "Next.js: debug server-side",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "npm run dev",
+            "cwd": "${workspaceFolder}/frontend"
+        },
+        {
+            "name": "Next.js: debug client-side",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:3000"
+        },
+        {
+            "name": "Next.js: debug full stack",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "npm run dev",
+            "cwd": "${workspaceFolder}/frontend",
+            "serverReadyAction": {
+                "pattern": "- Local:.+(https?://.+)",
+                "uriFormat": "%s",
+                "action": "debugWithChrome"
+            }
+        },
+        {
+            "name": "Docker: Attach to Next.js",
+            "type": "node",
+            "request": "attach",
+            "port": 9231,
+            "address": "localhost",
+            "localRoot": "${workspaceFolder}/frontend",
+            "remoteRoot": "/user/src/frontend",
+            "restart": true
+        }
+    ]
+}

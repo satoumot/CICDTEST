@@ -1,0 +1,215 @@
+name: cicd-dev # ワークフロー名を決定
+
+# トリガーの設定
+on:
+    push: # プッシュ(マージ)が発生したときにトリガー
+        branches:
+            - feature/*
+            - develop
+        tags:
+            - dev-build-* # dev-build-で始まるタグがプッシュされたときにトリガー
+    pull_request: # プルリクエストが発生したときにトリガー
+        branches:
+            - develop
+        types:
+            - opened # プルリクエストが作成されたときのみ
+
+# 環境変数の設定
+env:
+    OCI_CLI_USER: ${{ secrets.OCI_CLI_USER }}
+    OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
+    OCI_CLI_FINGERPRINT: ${{ secrets.OCI_CLI_FINGERPRINT }}
+    OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+    OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+
+# ジョブの設定
+jobs:
+    filter-files: # 変更されたファイルを判定(ローカルからリモートへのプッシュ用)
+        name: Determine Changed Files
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')) || github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        outputs: # 判定結果を格納
+            frontend: ${{ steps.filter.outputs.frontend }} # フロントエンド変更時
+            backend: ${{ steps.filter.outputs.backend }} # バックエンド変更時
+        steps:
+            - name: Checkout repository # リポジトリをチェックアウト
+              uses: actions/checkout@v4
+
+            - name: Determine changed files # 変更されたファイルを判定
+              id: filter
+              uses: dorny/paths-filter@v3
+              with:
+                  base: develop
+                  filters: |
+                      frontend:
+                        - 'frontend/**/*.ts'
+                        - 'frontend/**/*.tsx'
+                      backend:
+                        - 'backend/**/*.py'
+
+    frontend-format-lint-test: # フロントエンドのフォーマット、静的解析、テストを実施
+        name: Frontend Format & Lint & Test
+        needs: filter-files
+        # フロントエンドの変更があった場合、またはPRにfrontendラベルが付与された場合に実行
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') && needs.filter-files.outputs.frontend == 'true') || (github.event.action == 'opened' && contains(github.event.pull_request.labels.*.name, 'frontend'))
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository # リポジトリをチェックアウト
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # フルクローンする
+
+            - name: Set up Node.js # Node.js をセットアップ
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.17.0
+                  cache-dependency-path: frontend/package-lock.json # react内のロックファイルをキャッシュ
+
+            - name: Clear npm cache # npm キャッシュをクリア
+              run: npm cache clean --force
+
+            - name: Install dependencies # 依存関係をインストール
+              run: |
+                  cd frontend
+                  npm install
+
+            - name: Run Prettier check # Prettierでコードフォーマットをチェック
+              run: |
+                  cd frontend
+                  npm run prettier -- --check .
+
+            - name: Run ESLint # ESLintで静的解析を実施
+              run: |
+                  cd frontend
+                  npm run lint -- .
+
+            - name: Run tests # テストを実行
+              run: |
+                  cd frontend
+                  npm run test
+
+    backend-format-lint-test: # バックエンドのフォーマット、静的解析、テストを実施
+        name: Backend Format & Lint & Test
+        needs: filter-files
+        # バックエンドの変更があった場合、またはPRにbackendラベルが付与された場合に実行
+        if: (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') && needs.filter-files.outputs.backend == 'true') || (github.event.action == 'opened' && contains(github.event.pull_request.labels.*.name, 'backend'))
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository # リポジトリをチェックアウト
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # フルクローンする
+
+            - name: Set up Python # Python をセットアップ
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.13.5"
+                  cache: "pip"
+
+            - name: Install dependencies # 依存関係をインストール
+              run: |
+                  cd backend
+                  python -m pip install --upgrade pip
+                  pip install -r requirements.txt
+
+            - name: Run Ruff Format # Ruffでコードフォーマットをチェック
+              run: |
+                  cd backend
+                  ruff format --check .
+
+            - name: Run Ruff Lint # Ruffで静的解析を実施
+              run: |
+                  cd backend
+                  ruff check .
+
+            - name: Run Mypy # Mypyで型チェックを実施
+              run: |
+                  cd backend
+                  for service in \
+                    services/graphql-service \
+                    services/grpc-cart-service \
+                    services/grpc-order-service \
+                    services/grpc-payment-service \
+                    services/grpc-product-service \
+                    services/kafka-api \
+                    services/kafka-worker \
+                    services/workflow-service \
+                    shared
+                  do
+                    echo "--- Running mypy on $service ---"
+                    mypy "$service"
+                  done
+
+            - name: Run pytest # pytestでテストを実行
+              run: |
+                  cd backend
+                  pytest .
+
+    sonar-analyze: # SonarQubeで静的解析を実施
+        name: Sonar Analyze
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository # リポジトリをチェックアウト
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0 # フルクローンする
+
+            - name: SonarQube Scan
+              uses: SonarSource/sonarqube-scan-action@v5.2.0
+              with:
+                  args: >
+                      -Dsonar.projectKey=oimurat_cicd
+                      -Dsonar.organization=systena-dx
+              env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    frontend-build-and-push: # フロントエンドのビルドとプッシュを実施
+        name: Frontend Build & Push
+        if: startsWith(github.ref, 'refs/tags/dev-build-') # dev-build-で始まるタグがプッシュされたときに実行
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository # リポジトリをチェックアウト
+              uses: actions/checkout@v4
+
+            - name: Docker build # Docker イメージをビルド
+              working-directory: ./frontend
+              run: docker build . --file src/Dockerfile --tag nrt.ocir.io/nrcmxxv7sjse/ec_service_test:test-nextjs-${{ github.sha }}
+
+            - name: Login OCIR # OCIR にログイン
+              uses: oracle-actions/login-ocir@v1.3.0
+              with:
+                  auth_token: ${{ secrets.OCI_AUTH_TOKEN }}
+
+            - name: Push container image # コンテナイメージを OCIR にプッシュ
+              run: docker push nrt.ocir.io/nrcmxxv7sjse/ec_service_test:test-nextjs-${{ github.sha }}
+
+    backend-build-and-push: # バックエンドのビルドとプッシュを実施
+        name: Backend Build & Push (graphql-service)
+        if: startsWith(github.ref, 'refs/tags/dev-build-') # dev-build-で始まるタグがプッシュされたときに実行
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                service: # 対象のサービスを指定
+                    - graphql-service
+                    - grpc-cart-service
+                    - grpc-order-service
+                    - grpc-payment-service
+                    - grpc-product-service
+                    - kafka-api
+                    - kafka-worker
+                    - workflow-service
+        steps:
+            - name: Checkout repository # リポジトリをチェックアウト
+              uses: actions/checkout@v4
+
+            - name: Docker build # Docker イメージをビルド
+              run: docker build . --file backend/services/${{ matrix.service }}/Dockerfile --tag nrt.ocir.io/nrcmxxv7sjse/ec_service_test:test-${{ matrix.service }}-${{ github.sha }}
+
+            - name: Login OCIR # OCIR にログイン
+              uses: oracle-actions/login-ocir@v1.3.0
+              with:
+                  auth_token: ${{ secrets.OCI_AUTH_TOKEN }}
+
+            - name: Push container image # コンテナイメージを OCIR にプッシュ
+              run: docker push nrt.ocir.io/nrcmxxv7sjse/ec_service_test:test-${{ matrix.service }}-${{ github.sha }}

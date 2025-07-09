@@ -1,0 +1,18 @@
+fastapi==0.115.13
+uvicorn==0.34.3
+grpcio==1.73.1
+grpcio-tools==1.73.1
+strawberry-graphql==0.275.3
+requests==2.32.4
+temporalio==1.12.0
+aio-pika==9.5.5
+confluent-kafka==2.10.1
+sqlalchemy==2.0.41
+alembic==1.16.2
+psycopg2-binary==2.9.10
+aiokafka==0.12.0
+python-multipart==0.0.20
+debugpy==1.8.14 # デバッグ用
+ruff==0.12.2 # 静的解析・フォーマット用
+mypy==1.16.1 # 型チェック用
+pytest==8.4.1 # テスト用
